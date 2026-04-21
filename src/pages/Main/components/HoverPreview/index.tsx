@@ -1,15 +1,22 @@
+import { useAsyncEffect } from "ahooks";
 import clsx from "clsx";
 import { useContext, useEffect, useMemo, useState } from "react";
+import { icon } from "tauri-plugin-fs-pro-api";
 import LocalImage from "@/components/LocalImage";
 import SafeHtml from "@/components/SafeHtml";
 import type { HoverPreviewState } from "@/pages/Main";
 import { MainContext } from "@/pages/Main";
 import Rtf from "@/pages/Main/components/HistoryList/components/Rtf";
+import { dayjs } from "@/utils/dayjs";
 
 const PREVIEW_GAP = 10;
 const PREVIEW_DELAY = 500;
 const PREVIEW_MIN_WIDTH = 280;
 const PREVIEW_MAX_WIDTH = 420;
+
+const formatMetaDate = (value?: string) => {
+  return dayjs(value).format("MMMM DD, YYYY h:mmA");
+};
 
 const getPreviewPosition = (preview: HoverPreviewState) => {
   const { data, rect } = preview;
@@ -57,6 +64,7 @@ const getFileName = (path: string) => {
 const HoverPreview = () => {
   const { rootState } = useContext(MainContext);
   const { hoverPreview } = rootState;
+  const [appIcon, setAppIcon] = useState("");
   const [previewReady, setPreviewReady] = useState(false);
 
   const position = useMemo(() => {
@@ -81,6 +89,20 @@ const HoverPreview = () => {
       clearTimeout(timer);
     };
   }, [hoverPreview]);
+
+  useAsyncEffect(async () => {
+    setAppIcon("");
+
+    const sourceAppPath = hoverPreview?.data.sourceAppPath;
+
+    if (!sourceAppPath) return;
+
+    try {
+      const nextIcon = await icon(sourceAppPath, { size: 128 });
+
+      setAppIcon(nextIcon);
+    } catch {}
+  }, [hoverPreview?.data.sourceAppPath]);
 
   if (!hoverPreview?.visible || !position || !previewReady) return null;
 
@@ -118,7 +140,7 @@ const HoverPreview = () => {
         return (
           <div className="overflow-hidden rounded-xl bg-color-3/70 p-2">
             <LocalImage
-              className="max-h-[30rem] w-full object-contain"
+              className="max-h-[34rem] w-full object-contain"
               src={data.value}
             />
           </div>
@@ -154,6 +176,36 @@ const HoverPreview = () => {
       }}
     >
       {renderContent()}
+
+      <div className="mt-3 border-white/14 border-t pt-3 text-color-2 text-xs leading-6">
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-white/85">Application:</span>
+          {appIcon && (
+            <LocalImage
+              className="h-4 w-4 shrink-0 rounded-sm object-cover"
+              src={appIcon}
+            />
+          )}
+          <span className="truncate text-white/85">
+            {data.sourceAppName ?? "Unknown"}
+          </span>
+        </div>
+
+        <div>
+          <span className="mr-1 text-white/85">First copy time:</span>
+          <span>{formatMetaDate(data.firstCopyTime ?? data.createTime)}</span>
+        </div>
+
+        <div>
+          <span className="mr-1 text-white/85">Last copy time:</span>
+          <span>{formatMetaDate(data.lastCopyTime ?? data.createTime)}</span>
+        </div>
+
+        <div>
+          <span className="mr-1 text-white/85">Number of copies:</span>
+          <span>{data.copyTimes ?? 1}</span>
+        </div>
+      </div>
     </div>
   );
 };

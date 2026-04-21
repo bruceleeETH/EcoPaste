@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+use super::ActiveApplication;
 use cocoa::base::{id, nil};
 use cocoa::foundation::{NSAutoreleasePool, NSString};
 use objc::declare::ClassDecl;
@@ -12,6 +13,7 @@ use tauri::{command, AppHandle, Runtime, WebviewWindow};
 use tauri_plugin_eco_window::{set_macos_panel, MacOSPanelStatus, MAIN_WINDOW_TITLE};
 
 static PREVIOUS_WINDOW: Mutex<Option<i32>> = Mutex::new(None);
+static PREVIOUS_APPLICATION: Mutex<Option<ActiveApplication>> = Mutex::new(None);
 
 extern "C" fn application_did_activate(_self: &Object, _cmd: Sel, notification: id) {
     unsafe {
@@ -37,9 +39,33 @@ extern "C" fn application_did_activate(_self: &Object, _cmd: Sel, notification: 
         }
 
         let process_id: i32 = msg_send![app, processIdentifier];
+        let bundle_url: id = msg_send![app, bundleURL];
+        let path = if bundle_url == nil {
+            None
+        } else {
+            let path: id = msg_send![bundle_url, path];
+
+            if path == nil {
+                None
+            } else {
+                let path_str: *const i8 = msg_send![path, UTF8String];
+
+                if path_str.is_null() {
+                    None
+                } else {
+                    Some(CStr::from_ptr(path_str).to_string_lossy().into_owned())
+                }
+            }
+        };
 
         let mut previous_window = PREVIOUS_WINDOW.lock().unwrap();
         let _ = previous_window.insert(process_id);
+
+        let mut previous_application = PREVIOUS_APPLICATION.lock().unwrap();
+        let _ = previous_application.insert(ActiveApplication {
+            name: Some(name),
+            path,
+        });
     }
 }
 
@@ -77,6 +103,11 @@ pub fn observe_app() {
 // 获取前一个窗口
 pub fn get_previous_window() -> Option<i32> {
     return PREVIOUS_WINDOW.lock().unwrap().clone();
+}
+
+#[command]
+pub async fn get_active_application() -> Option<ActiveApplication> {
+    PREVIOUS_APPLICATION.lock().unwrap().clone()
 }
 
 // 粘贴

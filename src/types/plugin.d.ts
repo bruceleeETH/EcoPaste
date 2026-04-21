@@ -16,3 +16,8 @@ export interface ClipboardPayload {
   width?: number;
   height?: number;
 }
+
+export interface ActiveApplication {
+  name?: string;
+  path?: string;
+}

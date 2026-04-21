@@ -15,6 +15,7 @@ import {
 } from "@/database/history";
 import type { State } from "@/pages/Main";
 import { getClipboardTextSubtype } from "@/plugins/clipboard";
+import { getActiveApplication as getSourceApplication } from "@/plugins/paste";
 import { clipboardStore } from "@/stores/clipboard";
 import type { DatabaseSchemaHistory } from "@/types/database";
 import { formatDate } from "@/utils/dayjs";
@@ -28,16 +29,20 @@ export const useClipboard = (
 
     onClipboardChange(async (result) => {
       const { files, image, html, rtf, text } = result;
+      const now = formatDate();
 
       if (isEmpty(result) || Object.values(result).every(isEmpty)) return;
 
       const { copyPlain } = clipboardStore.content;
 
       const data = {
-        createTime: formatDate(),
+        copyTimes: 1,
+        createTime: now,
         favorite: false,
+        firstCopyTime: now,
         group: "text",
         id: nanoid(),
+        lastCopyTime: now,
         search: text?.value,
       } as DatabaseSchemaHistory;
 
@@ -62,9 +67,24 @@ export const useClipboard = (
         });
       }
 
+      const sourceApplication = await getSourceApplication().catch(() => null);
+
+      Object.assign(data, {
+        sourceAppName: sourceApplication?.name,
+        sourceAppPath: sourceApplication?.path,
+      });
+
       const sqlData = cloneDeep(data);
 
-      const { type, value, group, createTime } = data;
+      const {
+        type,
+        value,
+        group,
+        createTime,
+        lastCopyTime,
+        sourceAppName,
+        sourceAppPath,
+      } = data;
 
       if (type === "image") {
         sqlData.value = await fullName(value);
@@ -83,24 +103,54 @@ export const useClipboard = (
       const visible = state.group === "all" || state.group === group;
 
       if (matched) {
-        if (!clipboardStore.content.autoSort) return;
+        const nextCopyTimes = (matched.copyTimes ?? 1) + 1;
+        const nextData = {
+          copyTimes: nextCopyTimes,
+          createTime,
+          lastCopyTime,
+          sourceAppName,
+          sourceAppPath,
+        };
+        const nextVisibleData = {
+          ...matched,
+          ...data,
+          copyTimes: nextCopyTimes,
+          createTime,
+          firstCopyTime: matched.firstCopyTime ?? matched.createTime,
+          id: matched.id,
+          lastCopyTime,
+          sourceAppName,
+          sourceAppPath,
+        };
+
+        if (!clipboardStore.content.autoSort) {
+          if (visible) {
+            const target = state.list.find((item) => item.id === matched.id);
+
+            if (target) {
+              Object.assign(target, nextVisibleData);
+            }
+          }
+
+          return updateHistory(matched.id, nextData);
+        }
 
         const { id } = matched;
 
         if (visible) {
           remove(state.list, { id });
 
-          state.list.unshift({ ...data, id });
+          state.list.unshift(nextVisibleData);
         }
 
-        return updateHistory(id, { createTime });
+        return updateHistory(id, nextData);
       }
 
       if (visible) {
         state.list.unshift(data);
       }
 
-      insertHistory(sqlData);
+      await insertHistory(sqlData);
     }, options);
   });
 };

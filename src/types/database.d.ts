@@ -14,7 +14,12 @@ export type DatabaseSchemaHistory<
   search: string;
   favorite: boolean;
   createTime: string;
+  firstCopyTime?: string;
+  lastCopyTime?: string;
+  copyTimes?: number;
   note?: string;
+  sourceAppName?: string;
+  sourceAppPath?: string;
   subtype?: DatabaseSchemaHistorySubtype;
 };
 
