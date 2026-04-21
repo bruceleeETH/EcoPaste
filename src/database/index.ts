@@ -47,6 +47,7 @@ export const getDatabase = async () => {
     .addColumn("firstCopyTime", "text")
     .addColumn("lastCopyTime", "text")
     .addColumn("copyTimes", "integer", (col) => col.defaultTo(1))
+    .addColumn("dedupeKey", "text")
     .addColumn("note", "text")
     .addColumn("sourceAppName", "text")
     .addColumn("sourceAppPath", "text")
@@ -64,6 +65,7 @@ export const getDatabase = async () => {
   await ensureColumn("firstCopyTime", "TEXT");
   await ensureColumn("lastCopyTime", "TEXT");
   await ensureColumn("copyTimes", "INTEGER DEFAULT 1");
+  await ensureColumn("dedupeKey", "TEXT");
   await ensureColumn("sourceAppName", "TEXT");
   await ensureColumn("sourceAppPath", "TEXT");
 

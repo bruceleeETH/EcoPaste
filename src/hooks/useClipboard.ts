@@ -20,6 +20,121 @@ import { clipboardStore } from "@/stores/clipboard";
 import type { DatabaseSchemaHistory } from "@/types/database";
 import { formatDate } from "@/utils/dayjs";
 
+const normalizeClipboardText = (value?: string | null) => {
+  return value?.replace(/\s+/g, " ").trim() ?? "";
+};
+
+const getHtmlVisibleText = (value?: string) => {
+  if (!value) return "";
+
+  try {
+    const document = new DOMParser().parseFromString(value, "text/html");
+
+    return normalizeClipboardText(document.body.textContent);
+  } catch {
+    return "";
+  }
+};
+
+const getTextualDedupeSource = (item: DatabaseSchemaHistory) => {
+  const search = normalizeClipboardText(item.search);
+
+  if (search) return search;
+
+  if (item.type === "html" && typeof item.value === "string") {
+    const visibleText = getHtmlVisibleText(item.value);
+
+    if (visibleText) return visibleText;
+  }
+
+  if (typeof item.value === "string") {
+    return normalizeClipboardText(item.value);
+  }
+
+  return "";
+};
+
+const getFilesDedupeSource = (value: DatabaseSchemaHistory["value"]) => {
+  if (Array.isArray(value)) {
+    return value.map(String).sort().join("\n");
+  }
+
+  if (typeof value !== "string") return "";
+
+  try {
+    const parsed = JSON.parse(value);
+
+    if (Array.isArray(parsed)) {
+      return parsed.map(String).sort().join("\n");
+    }
+  } catch {}
+
+  return value;
+};
+
+const getHistoryDedupeBucket = (item: DatabaseSchemaHistory) => {
+  switch (item.type) {
+    case "image":
+      return "image";
+    case "files":
+      return "files";
+    default:
+      return "textual";
+  }
+};
+
+const getHistoryDedupeKey = (item: DatabaseSchemaHistory) => {
+  const bucket = getHistoryDedupeBucket(item);
+
+  if (bucket === "image") {
+    return `image:${typeof item.value === "string" ? item.value : ""}`;
+  }
+
+  if (bucket === "files") {
+    return `files:${normalizeClipboardText(getFilesDedupeSource(item.value))}`;
+  }
+
+  const source = getTextualDedupeSource(item);
+
+  if (source) return `textual:${source}`;
+
+  return `${item.type}:${typeof item.value === "string" ? item.value : ""}`;
+};
+
+const findMatchedHistory = async (item: DatabaseSchemaHistory) => {
+  const dedupeKey = getHistoryDedupeKey(item);
+  const bucket = getHistoryDedupeBucket(item);
+  const [matchedByKey] = await selectHistory((qb) => {
+    return qb
+      .where("dedupeKey", "=", dedupeKey)
+      .orderBy("createTime", "desc")
+      .limit(1);
+  });
+
+  if (matchedByKey) {
+    return {
+      dedupeKey,
+      matched: matchedByKey,
+    };
+  }
+
+  const fallbackCandidates = await selectHistory((qb) => {
+    return qb
+      .$if(bucket === "textual", (eb) => eb.where("group", "=", "text"))
+      .$if(bucket === "image", (eb) => eb.where("type", "=", "image"))
+      .$if(bucket === "files", (eb) => eb.where("type", "=", "files"))
+      .orderBy("createTime", "desc")
+      .limit(50);
+  });
+
+  return {
+    dedupeKey,
+    matched: fallbackCandidates.find((candidate) => {
+      return getHistoryDedupeKey(candidate) === dedupeKey;
+    }),
+  };
+};
+
 export const useClipboard = (
   state: State,
   options?: ClipboardChangeOptions,
@@ -94,11 +209,10 @@ export const useClipboard = (
         sqlData.value = JSON.stringify(value);
       }
 
-      const [matched] = await selectHistory((qb) => {
-        const { type, value } = sqlData;
+      const { dedupeKey, matched } = await findMatchedHistory(sqlData);
 
-        return qb.where("type", "=", type).where("value", "=", value);
-      });
+      data.dedupeKey = dedupeKey;
+      sqlData.dedupeKey = dedupeKey;
 
       const visible = state.group === "all" || state.group === group;
 
@@ -106,19 +220,31 @@ export const useClipboard = (
         const nextCopyTimes = (matched.copyTimes ?? 1) + 1;
         const nextData = {
           copyTimes: nextCopyTimes,
+          count: sqlData.count,
           createTime,
+          dedupeKey,
+          group: sqlData.group,
+          height: sqlData.height,
           lastCopyTime,
+          search: sqlData.search,
           sourceAppName,
           sourceAppPath,
+          subtype: sqlData.subtype,
+          type: sqlData.type,
+          value: sqlData.value,
+          width: sqlData.width,
         };
         const nextVisibleData = {
           ...matched,
           ...data,
           copyTimes: nextCopyTimes,
           createTime,
+          dedupeKey,
+          favorite: matched.favorite,
           firstCopyTime: matched.firstCopyTime ?? matched.createTime,
           id: matched.id,
           lastCopyTime,
+          note: matched.note,
           sourceAppName,
           sourceAppPath,
         };

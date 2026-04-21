@@ -17,6 +17,7 @@ export type DatabaseSchemaHistory<
   firstCopyTime?: string;
   lastCopyTime?: string;
   copyTimes?: number;
+  dedupeKey?: string;
   note?: string;
   sourceAppName?: string;
   sourceAppPath?: string;
