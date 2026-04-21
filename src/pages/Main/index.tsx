@@ -24,6 +24,7 @@ import type {
   DatabaseSchemaGroupId,
   DatabaseSchemaHistory,
 } from "@/types/database";
+import type { Timeout } from "@/types/shared";
 import type { Store } from "@/types/store";
 import { deepAssign } from "@/utils/object";
 import DockMode from "./components/DockMode";
@@ -34,11 +35,26 @@ interface EventBusPayload {
   action: string;
 }
 
+export interface HoverPreviewState {
+  data: DatabaseSchemaHistory;
+  rect: {
+    bottom: number;
+    height: number;
+    left: number;
+    right: number;
+    top: number;
+    width: number;
+  };
+  visible: boolean;
+}
+
 export interface State {
   group: DatabaseSchemaGroupId;
   search?: string;
   pinned?: boolean;
   activeId?: string;
+  hoverPreview?: HoverPreviewState;
+  hoverPreviewTimer?: Timeout;
   list: DatabaseSchemaHistory[];
   eventBus?: EventEmitter<EventBusPayload>;
   quickPasteKeys: string[];

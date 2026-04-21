@@ -1,8 +1,9 @@
 import { openPath } from "@tauri-apps/plugin-opener";
+import { useUnmount } from "ahooks";
 import { Flex } from "antd";
 import type { HookAPI } from "antd/es/modal/useModal";
 import clsx from "clsx";
-import { type FC, useContext } from "react";
+import { type FC, type MouseEvent as ReactMouseEvent, useContext } from "react";
 import { Marker } from "react-mark.js";
 import { useSnapshot } from "valtio";
 import SafeHtml from "@/components/SafeHtml";
@@ -31,6 +32,14 @@ const Item: FC<ItemProps> = (props) => {
   const { id, type, note, value } = data;
   const { rootState } = useContext(MainContext);
   const { content } = useSnapshot(clipboardStore);
+
+  useUnmount(() => {
+    clearTimeout(rootState.hoverPreviewTimer);
+
+    if (rootState.hoverPreview?.data.id === id) {
+      rootState.hoverPreview = void 0;
+    }
+  });
 
   const handlePreview = () => {
     if (type !== "image") return;
@@ -86,6 +95,35 @@ const Item: FC<ItemProps> = (props) => {
     pasteToClipboard(data);
   };
 
+  const handleMouseEnter = (event: ReactMouseEvent<HTMLDivElement>) => {
+    clearTimeout(rootState.hoverPreviewTimer);
+
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    rootState.hoverPreview = {
+      data,
+      rect: {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
+      },
+      visible: true,
+    };
+  };
+
+  const handleMouseLeave = () => {
+    clearTimeout(rootState.hoverPreviewTimer);
+
+    rootState.hoverPreviewTimer = setTimeout(() => {
+      if (rootState.hoverPreview?.data.id === id) {
+        rootState.hoverPreview = void 0;
+      }
+    }, 60);
+  };
+
   const renderContent = () => {
     switch (type) {
       case "text":
@@ -114,6 +152,8 @@ const Item: FC<ItemProps> = (props) => {
       onClick={() => handleClick("single")}
       onContextMenu={handleContextMenu}
       onDoubleClick={() => handleClick("double")}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       vertical
     >
       <span

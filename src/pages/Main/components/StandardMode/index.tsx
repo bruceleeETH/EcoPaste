@@ -7,6 +7,7 @@ import { clipboardStore } from "@/stores/clipboard";
 import { isLinux, isWin } from "@/utils/is";
 import GroupList from "../GroupList";
 import HistoryList from "../HistoryList";
+import HoverPreview from "../HoverPreview";
 import SearchInput from "../SearchInput";
 import WindowPin from "../WindowPin";
 
@@ -62,6 +63,8 @@ const StandardMode = () => {
       >
         <HistoryList />
       </Flex>
+
+      <HoverPreview />
     </Flex>
   );
 };

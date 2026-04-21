@@ -60,6 +60,22 @@ const HistoryList = () => {
     scrollToIndex(index);
   }, [rootState.activeId]);
 
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (!scroller) return;
+
+    const handleScroll = () => {
+      rootState.hoverPreview = void 0;
+    };
+
+    scroller.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      scroller.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
   return (
     <>
       <Scrollbar className="flex-1" offsetX={3} ref={scrollerRef}>
