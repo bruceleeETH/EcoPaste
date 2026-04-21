@@ -18,14 +18,52 @@ const formatMetaDate = (value?: string) => {
   return dayjs(value).format("MMMM DD, YYYY h:mmA");
 };
 
+const getImagePreviewPreset = (width?: number, height?: number) => {
+  if (!width || !height) {
+    return {
+      imageClassName: "max-h-[34rem] w-full object-contain",
+      maxHeight: 520,
+      maxWidth: 560,
+    };
+  }
+
+  const ratio = width / height;
+
+  if (ratio >= 1.25) {
+    return {
+      imageClassName: "max-h-[24rem] w-full object-contain",
+      maxHeight: 440,
+      maxWidth: 640,
+    };
+  }
+
+  if (ratio <= 0.8) {
+    return {
+      imageClassName: "mx-auto max-h-[38rem] w-auto max-w-full object-contain",
+      maxHeight: 640,
+      maxWidth: 440,
+    };
+  }
+
+  return {
+    imageClassName: "mx-auto max-h-[30rem] w-auto max-w-full object-contain",
+    maxHeight: 540,
+    maxWidth: 520,
+  };
+};
+
 const getPreviewPosition = (preview: HoverPreviewState) => {
   const { data, rect } = preview;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const maxWidth = data.type === "image" ? 560 : PREVIEW_MAX_WIDTH;
+  const imagePreset =
+    data.type === "image"
+      ? getImagePreviewPreset(data.width, data.height)
+      : void 0;
+  const maxWidth = imagePreset?.maxWidth ?? PREVIEW_MAX_WIDTH;
   const width = Math.min(maxWidth, viewportWidth - 32);
   const maxHeight = Math.min(
-    data.type === "image" ? 520 : 360,
+    imagePreset?.maxHeight ?? 360,
     viewportHeight - 32,
   );
   const enoughRight =
@@ -108,6 +146,7 @@ const HoverPreview = () => {
 
   const { data } = hoverPreview;
   const { type } = data;
+  const imagePreset = getImagePreviewPreset(data.width, data.height);
 
   const renderContent = () => {
     switch (type) {
@@ -140,7 +179,7 @@ const HoverPreview = () => {
         return (
           <div className="overflow-hidden rounded-xl bg-color-3/70 p-2">
             <LocalImage
-              className="max-h-[34rem] w-full object-contain"
+              className={imagePreset.imageClassName}
               src={data.value}
             />
           </div>
@@ -177,33 +216,35 @@ const HoverPreview = () => {
     >
       {renderContent()}
 
-      <div className="mt-3 border-white/14 border-t pt-3 text-color-2 text-xs leading-6">
-        <div className="flex items-center gap-2">
-          <span className="shrink-0 text-white/85">Application:</span>
-          {appIcon && (
-            <LocalImage
-              className="h-4 w-4 shrink-0 rounded-sm object-cover"
-              src={appIcon}
-            />
-          )}
-          <span className="truncate text-white/85">
-            {data.sourceAppName ?? "Unknown"}
-          </span>
-        </div>
+      <div className="mt-3 border-white/14 border-t pt-3 text-color-2 text-xs leading-5">
+        <div className="space-y-0">
+          <div className="flex items-center gap-2">
+            <span className="mr-1 text-white/85">Application:</span>
+            {appIcon && (
+              <LocalImage
+                className="h-4 w-4 shrink-0 rounded-sm object-cover"
+                src={appIcon}
+              />
+            )}
+            <span className="truncate text-white/85">
+              {data.sourceAppName ?? "Unknown"}
+            </span>
+          </div>
 
-        <div>
-          <span className="mr-1 text-white/85">First copy time:</span>
-          <span>{formatMetaDate(data.firstCopyTime ?? data.createTime)}</span>
-        </div>
+          <div>
+            <span className="mr-1 text-white/85">First copy time:</span>
+            <span>{formatMetaDate(data.firstCopyTime ?? data.createTime)}</span>
+          </div>
 
-        <div>
-          <span className="mr-1 text-white/85">Last copy time:</span>
-          <span>{formatMetaDate(data.lastCopyTime ?? data.createTime)}</span>
-        </div>
+          <div>
+            <span className="mr-1 text-white/85">Last copy time:</span>
+            <span>{formatMetaDate(data.lastCopyTime ?? data.createTime)}</span>
+          </div>
 
-        <div>
-          <span className="mr-1 text-white/85">Number of copies:</span>
-          <span>{data.copyTimes ?? 1}</span>
+          <div>
+            <span className="mr-1 text-white/85">Number of copies:</span>
+            <span>{data.copyTimes ?? 1}</span>
+          </div>
         </div>
       </div>
     </div>
