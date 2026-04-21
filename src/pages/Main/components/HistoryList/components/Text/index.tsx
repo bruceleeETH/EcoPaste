@@ -43,7 +43,7 @@ const Text: FC<DatabaseSchemaHistory<"text">> = (props) => {
     return renderMarker();
   };
 
-  return <div className="line-clamp-4">{renderContent()}</div>;
+  return <div className="line-clamp-3 leading-5">{renderContent()}</div>;
 };
 
 export default Text;

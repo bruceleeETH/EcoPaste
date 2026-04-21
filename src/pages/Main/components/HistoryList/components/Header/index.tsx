@@ -104,23 +104,39 @@ const Header: FC<HeaderProps> = (props) => {
     }
   };
 
+  const pixel = renderPixel();
+
   return (
-    <Flex className="text-color-2" gap="small" justify="space-between">
-      <Scrollbar thumbSize={0}>
-        <Flex className="flex-1 whitespace-nowrap text-xs" gap="small">
-          <span>{renderType()}</span>
-          <span>{renderCount()}</span>
-          {renderPixel()}
-          <span>{dayjs(createTime).locale(i18n.language).fromNow()}</span>
+    <Flex
+      align="center"
+      className="text-color-2"
+      gap="small"
+      justify="space-between"
+    >
+      <Scrollbar className="flex-1" thumbSize={0}>
+        <Flex
+          align="center"
+          className="min-w-0 whitespace-nowrap text-[11px]"
+          gap={6}
+        >
+          <span className="shrink-0 rounded-full bg-color-3 px-2 py-0.75 font-medium">
+            {renderType()}
+          </span>
+          <span className="shrink-0 opacity-70">{renderCount()}</span>
+          {pixel && <span className="shrink-0 opacity-70">{pixel}</span>}
+          <span className="truncate opacity-65">
+            {dayjs(createTime).locale(i18n.language).fromNow()}
+          </span>
         </Flex>
       </Scrollbar>
 
       <Flex
         align="center"
-        className={clsx("opacity-0 transition group-hover:opacity-100", {
+        className={clsx("min-w-25 justify-end transition", {
+          "opacity-55 group-hover:opacity-100": rootState.activeId !== id,
           "opacity-100": rootState.activeId === id,
         })}
-        gap={6}
+        gap={4}
         onDoubleClick={(event) => event.stopPropagation()}
       >
         {operationButtons.map((item) => {
@@ -130,7 +146,9 @@ const Header: FC<HeaderProps> = (props) => {
 
           return (
             <UnoIcon
-              className={clsx({ "text-gold!": isFavorite })}
+              className={clsx("rounded-md p-1 transition hover:bg-color-3", {
+                "text-gold!": isFavorite,
+              })}
               hoverable
               key={key}
               name={isFavorite ? activeIcon : icon}

@@ -75,7 +75,7 @@ const HistoryList = () => {
           endReached={loadMore}
           itemContent={(index, data) => {
             return (
-              <div className={clsx({ "pt-3": index !== 0 })}>
+              <div className={clsx({ "pt-2": index !== 0 })}>
                 <Item
                   data={data}
                   deleteModal={deleteModal}

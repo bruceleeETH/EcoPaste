@@ -15,26 +15,25 @@ const StandardMode = () => {
 
   return (
     <Flex
-      className={clsx("h-screen bg-color-1 py-3", {
+      className={clsx("h-screen bg-color-1 px-2 py-2.5", {
         "b b-color-1": isLinux,
         "flex-col-reverse": search.position === "bottom",
         "rounded-2.5": !isWin,
       })}
       data-tauri-drag-region
-      gap={12}
+      gap={8}
       vertical
     >
-      <SearchInput className="mx-3" />
-
       <Flex
-        className="flex-1 overflow-hidden"
-        data-tauri-drag-region
-        gap={12}
+        className="mx-1 rounded-2xl bg-color-2/50 px-2 py-2 shadow-black/5 shadow-sm"
+        gap={8}
         vertical
       >
+        <SearchInput />
+
         <Flex
           align="center"
-          className="overflow-hidden px-3"
+          className="overflow-hidden px-1"
           data-tauri-drag-region
           gap="small"
           justify="space-between"
@@ -53,7 +52,14 @@ const StandardMode = () => {
             />
           </Flex>
         </Flex>
+      </Flex>
 
+      <Flex
+        className="flex-1 overflow-hidden"
+        data-tauri-drag-region
+        gap={8}
+        vertical
+      >
         <HistoryList />
       </Flex>
     </Flex>

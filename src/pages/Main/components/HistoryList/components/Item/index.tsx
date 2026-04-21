@@ -104,9 +104,10 @@ const Item: FC<ItemProps> = (props) => {
   return (
     <Flex
       className={clsx(
-        "group b hover:b-primary-5 b-color-2 mx-3 max-h-30 rounded-md p-1.5 transition",
+        "group b b-color-2 relative mx-3 max-h-28 overflow-hidden rounded-xl bg-color-1 px-3 py-2.5 shadow-black/4 shadow-sm transition",
         {
-          "b-primary bg-primary-1": rootState.activeId === id,
+          "b-primary bg-primary-1 shadow-primary/12": rootState.activeId === id,
+          "hover:b-primary-4 hover:shadow-black/6": rootState.activeId !== id,
         },
       )}
       gap={4}
@@ -115,12 +116,22 @@ const Item: FC<ItemProps> = (props) => {
       onDoubleClick={() => handleClick("double")}
       vertical
     >
+      <span
+        className={clsx(
+          "absolute top-3 bottom-3 left-0 w-1 rounded-r-full bg-primary transition",
+          {
+            "opacity-0 group-hover:opacity-60": rootState.activeId !== id,
+            "opacity-100": rootState.activeId === id,
+          },
+        )}
+      />
+
       <Header {...rest} data={data} handleNote={handleNote} />
 
       <div className="relative flex-1 select-auto overflow-hidden break-words children:transition">
         <div
           className={clsx(
-            "pointer-events-none absolute inset-0 line-clamp-4 children:inline opacity-0",
+            "pointer-events-none absolute inset-0 line-clamp-3 children:inline opacity-0",
             {
               "group-hover:opacity-0": content.showOriginalContent,
               "opacity-100": note,
@@ -136,7 +147,7 @@ const Item: FC<ItemProps> = (props) => {
         </div>
 
         <div
-          className={clsx("h-full", {
+          className={clsx("h-full text-[13px] leading-5", {
             "group-hover:opacity-100": content.showOriginalContent,
             "opacity-0": note,
           })}

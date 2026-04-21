@@ -22,6 +22,22 @@ export const selectHistory = async (
   return qb.execute() as Promise<DatabaseSchemaHistory[]>;
 };
 
+export const countHistory = async (fn?: (qb: QueryBuilder) => QueryBuilder) => {
+  const db = await getDatabase();
+
+  let qb = db.selectFrom("history") as QueryBuilder;
+
+  if (fn) {
+    qb = fn(qb);
+  }
+
+  const result = await qb
+    .select(({ fn }) => fn.countAll<number>().as("count"))
+    .executeTakeFirst();
+
+  return Number(result?.count ?? 0);
+};
+
 export const insertHistory = async (data: DatabaseSchemaHistory) => {
   const db = await getDatabase();
 

@@ -1,6 +1,7 @@
 import { useBoolean, useKeyPress } from "ahooks";
 import type { InputRef } from "antd";
 import { Input } from "antd";
+import clsx from "clsx";
 import {
   type FC,
   type HTMLAttributes,
@@ -17,6 +18,7 @@ import { clipboardStore } from "@/stores/clipboard";
 import { MainContext } from "../..";
 
 const SearchInput: FC<HTMLAttributes<HTMLDivElement>> = (props) => {
+  const { className, ...rest } = props;
   const { rootState } = useContext(MainContext);
   const inputRef = useRef<InputRef>(null);
   const [value, setValue] = useState<string>();
@@ -65,7 +67,13 @@ const SearchInput: FC<HTMLAttributes<HTMLDivElement>> = (props) => {
   );
 
   return (
-    <div {...props}>
+    <div
+      {...rest}
+      className={clsx(
+        "rounded-xl bg-color-1 shadow-black/5 shadow-sm [&_.ant-input-affix-wrapper]:rounded-xl [&_.ant-input-affix-wrapper]:border-color-2 [&_.ant-input-affix-wrapper]:bg-color-1 [&_.ant-input-affix-wrapper]:px-3 [&_.ant-input-affix-wrapper]:py-2 [&_.ant-input-affix-wrapper]:shadow-none [&_.ant-input-prefix]:mr-2 [&_.ant-input]:text-sm",
+        className,
+      )}
+    >
       <Input
         allowClear
         autoCorrect="off"
