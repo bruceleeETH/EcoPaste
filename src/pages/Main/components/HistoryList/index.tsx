@@ -66,6 +66,8 @@ const HistoryList = () => {
     if (!scroller) return;
 
     const handleScroll = () => {
+      rootState.hoverPreviewContentHovered = false;
+      rootState.hoverPreviewSourceHovered = false;
       rootState.hoverPreview = void 0;
     };
 

@@ -13,6 +13,8 @@ const PREVIEW_GAP = 10;
 const PREVIEW_DELAY = 500;
 const PREVIEW_MIN_WIDTH = 280;
 const PREVIEW_MAX_WIDTH = 420;
+const HOVER_PREVIEW_CLOSE_DELAY = 140;
+const PREVIEW_META_HEIGHT = 112;
 
 const formatMetaDate = (value?: string) => {
   return dayjs(value).format("MMMM DD, YYYY h:mmA");
@@ -21,8 +23,8 @@ const formatMetaDate = (value?: string) => {
 const getImagePreviewPreset = (width?: number, height?: number) => {
   if (!width || !height) {
     return {
-      imageClassName: "max-h-[34rem] w-full object-contain",
-      maxHeight: 520,
+      imageClassName: "max-h-[40rem] w-full object-contain",
+      maxHeight: 620,
       maxWidth: 560,
     };
   }
@@ -31,23 +33,23 @@ const getImagePreviewPreset = (width?: number, height?: number) => {
 
   if (ratio >= 1.25) {
     return {
-      imageClassName: "max-h-[24rem] w-full object-contain",
-      maxHeight: 440,
+      imageClassName: "max-h-[30rem] w-full object-contain",
+      maxHeight: 520,
       maxWidth: 640,
     };
   }
 
   if (ratio <= 0.8) {
     return {
-      imageClassName: "mx-auto max-h-[38rem] w-auto max-w-full object-contain",
-      maxHeight: 640,
+      imageClassName: "mx-auto max-h-[46rem] w-auto max-w-full object-contain",
+      maxHeight: 760,
       maxWidth: 440,
     };
   }
 
   return {
-    imageClassName: "mx-auto max-h-[30rem] w-auto max-w-full object-contain",
-    maxHeight: 540,
+    imageClassName: "mx-auto max-h-[36rem] w-auto max-w-full object-contain",
+    maxHeight: 640,
     maxWidth: 520,
   };
 };
@@ -105,6 +107,23 @@ const HoverPreview = () => {
   const [appIcon, setAppIcon] = useState("");
   const [previewReady, setPreviewReady] = useState(false);
 
+  const scheduleHoverPreviewClose = () => {
+    clearTimeout(rootState.hoverPreviewTimer);
+
+    rootState.hoverPreviewTimer = setTimeout(() => {
+      if (
+        rootState.hoverPreviewSourceHovered ||
+        rootState.hoverPreviewContentHovered
+      ) {
+        return;
+      }
+
+      rootState.hoverPreviewContentHovered = false;
+      rootState.hoverPreviewSourceHovered = false;
+      rootState.hoverPreview = void 0;
+    }, HOVER_PREVIEW_CLOSE_DELAY);
+  };
+
   const position = useMemo(() => {
     if (!hoverPreview?.visible) return;
 
@@ -113,6 +132,7 @@ const HoverPreview = () => {
 
   useEffect(() => {
     if (!hoverPreview?.visible) {
+      rootState.hoverPreviewContentHovered = false;
       setPreviewReady(false);
       return;
     }
@@ -147,6 +167,10 @@ const HoverPreview = () => {
   const { data } = hoverPreview;
   const { type } = data;
   const imagePreset = getImagePreviewPreset(data.width, data.height);
+  const contentMaxHeight = Math.max(
+    120,
+    position.maxHeight - PREVIEW_META_HEIGHT,
+  );
 
   const renderContent = () => {
     switch (type) {
@@ -154,7 +178,7 @@ const HoverPreview = () => {
         return (
           <div
             className={clsx(
-              "max-h-58 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-color-3/70 px-3 py-2.5 text-sm leading-6",
+              "whitespace-pre-wrap break-all rounded-xl bg-color-3/70 px-3 py-2.5 text-sm leading-6",
               {
                 "font-mono text-[13px]": /\n|\/|--|=>|\$|\|/.test(data.value),
               },
@@ -165,28 +189,28 @@ const HoverPreview = () => {
         );
       case "html":
         return (
-          <div className="max-h-58 overflow-auto rounded-xl bg-color-3/70 px-3 py-2.5 text-sm">
+          <div className="rounded-xl bg-color-3/70 px-3 py-2.5 text-sm">
             <SafeHtml value={data.value} />
           </div>
         );
       case "rtf":
         return (
-          <div className="max-h-58 overflow-auto rounded-xl bg-color-3/70 px-3 py-2.5 text-sm">
+          <div className="rounded-xl bg-color-3/70 px-3 py-2.5 text-sm">
             <Rtf {...data} />
           </div>
         );
       case "image":
         return (
-          <div className="overflow-hidden rounded-xl bg-color-3/70 p-2">
+          <div className="flex h-full items-center justify-center overflow-auto rounded-xl bg-color-3/70 p-2">
             <LocalImage
-              className={imagePreset.imageClassName}
+              className={clsx("max-h-full", imagePreset.imageClassName)}
               src={data.value}
             />
           </div>
         );
       case "files":
         return (
-          <div className="max-h-58 space-y-2 overflow-auto">
+          <div className="space-y-2">
             {data.value.map((path) => {
               return (
                 <div className="rounded-xl bg-color-3/70 px-3 py-2" key={path}>
@@ -206,7 +230,15 @@ const HoverPreview = () => {
 
   return (
     <div
-      className="b b-color-2 pointer-events-none fixed z-50 overflow-hidden rounded-[20px] bg-color-1/96 p-3 shadow-2xl shadow-black/28 backdrop-blur-md"
+      className="b b-color-2 pointer-events-auto fixed z-50 flex flex-col overflow-hidden rounded-[20px] bg-color-1/96 p-3 shadow-2xl shadow-black/28 backdrop-blur-md"
+      onMouseEnter={() => {
+        clearTimeout(rootState.hoverPreviewTimer);
+        rootState.hoverPreviewContentHovered = true;
+      }}
+      onMouseLeave={() => {
+        rootState.hoverPreviewContentHovered = false;
+        scheduleHoverPreviewClose();
+      }}
       style={{
         left: `${position.left}px`,
         maxHeight: `${position.maxHeight}px`,
@@ -214,9 +246,16 @@ const HoverPreview = () => {
         width: `${position.width}px`,
       }}
     >
-      {renderContent()}
+      <div
+        className="min-h-0 flex-1 overflow-auto"
+        style={{
+          maxHeight: `${contentMaxHeight}px`,
+        }}
+      >
+        {renderContent()}
+      </div>
 
-      <div className="mt-3 border-white/14 border-t pt-3 text-color-2 text-xs leading-5">
+      <div className="mt-3 shrink-0 border-white/14 border-t pt-3 text-color-2 text-xs leading-5">
         <div className="space-y-0">
           <div className="flex items-center gap-2">
             <span className="mr-1 text-white/85">Application:</span>

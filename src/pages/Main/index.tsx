@@ -54,6 +54,8 @@ export interface State {
   pinned?: boolean;
   activeId?: string;
   hoverPreview?: HoverPreviewState;
+  hoverPreviewContentHovered?: boolean;
+  hoverPreviewSourceHovered?: boolean;
   hoverPreviewTimer?: Timeout;
   list: DatabaseSchemaHistory[];
   eventBus?: EventEmitter<EventBusPayload>;

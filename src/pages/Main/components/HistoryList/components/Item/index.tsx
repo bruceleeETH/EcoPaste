@@ -20,6 +20,8 @@ import Image from "../Image";
 import Rtf from "../Rtf";
 import Text from "../Text";
 
+const HOVER_PREVIEW_CLOSE_DELAY = 140;
+
 export interface ItemProps {
   index: number;
   data: DatabaseSchemaHistory;
@@ -33,10 +35,31 @@ const Item: FC<ItemProps> = (props) => {
   const { rootState } = useContext(MainContext);
   const { content } = useSnapshot(clipboardStore);
 
+  const scheduleHoverPreviewClose = () => {
+    clearTimeout(rootState.hoverPreviewTimer);
+
+    rootState.hoverPreviewTimer = setTimeout(() => {
+      if (
+        rootState.hoverPreviewSourceHovered ||
+        rootState.hoverPreviewContentHovered
+      ) {
+        return;
+      }
+
+      if (rootState.hoverPreview?.data.id === id) {
+        rootState.hoverPreviewContentHovered = false;
+        rootState.hoverPreviewSourceHovered = false;
+        rootState.hoverPreview = void 0;
+      }
+    }, HOVER_PREVIEW_CLOSE_DELAY);
+  };
+
   useUnmount(() => {
     clearTimeout(rootState.hoverPreviewTimer);
 
     if (rootState.hoverPreview?.data.id === id) {
+      rootState.hoverPreviewContentHovered = false;
+      rootState.hoverPreviewSourceHovered = false;
       rootState.hoverPreview = void 0;
     }
   });
@@ -97,6 +120,7 @@ const Item: FC<ItemProps> = (props) => {
 
   const handleMouseEnter = (event: ReactMouseEvent<HTMLDivElement>) => {
     clearTimeout(rootState.hoverPreviewTimer);
+    rootState.hoverPreviewSourceHovered = true;
 
     const rect = event.currentTarget.getBoundingClientRect();
 
@@ -115,13 +139,8 @@ const Item: FC<ItemProps> = (props) => {
   };
 
   const handleMouseLeave = () => {
-    clearTimeout(rootState.hoverPreviewTimer);
-
-    rootState.hoverPreviewTimer = setTimeout(() => {
-      if (rootState.hoverPreview?.data.id === id) {
-        rootState.hoverPreview = void 0;
-      }
-    }, 60);
+    rootState.hoverPreviewSourceHovered = false;
+    scheduleHoverPreviewClose();
   };
 
   const renderContent = () => {
